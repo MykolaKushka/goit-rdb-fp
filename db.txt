@@ -1,0 +1,96 @@
+1. 
+a)
+CREATE DATABASE pandemic;
+
+b) 
+USE pandemic;
+
+
+2. 
+a) 
+USE pandemic;
+CREATE TABLE entities (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    code VARCHAR(50) DEFAULT NULL
+);
+
+b) 
+USE pandemic;
+INSERT INTO entities (name, code)
+SELECT DISTINCT Entity, Code
+FROM infectious_cases;
+
+c) 
+USE pandemic;
+ALTER TABLE infectious_cases
+ADD COLUMN entity_id INT;
+
+d) 
+USE pandemic;
+UPDATE infectious_cases ic
+JOIN entities e ON ic.Entity = e.name AND ic.Code = e.code
+SET ic.entity_id = e.id;
+
+e) 
+USE pandemic;
+ALTER TABLE infectious_cases
+DROP COLUMN Entity,
+DROP COLUMN Code;
+
+f) 
+USE pandemic;
+ALTER TABLE infectious_cases
+ADD CONSTRAINT fk_entity_id FOREIGN KEY (entity_id) REFERENCES entities(id);
+
+
+3. 
+USE pandemic;
+SELECT 
+    e.name,
+    e.code,
+    AVG(ic.Number_rabies) AS avg_number_rabies,
+    MIN(ic.Number_rabies) AS min_number_rabies,
+    MAX(ic.Number_rabies) AS max_number_rabies,
+    SUM(ic.Number_rabies) AS sum_number_rabies
+FROM 
+    infectious_cases ic
+JOIN 
+    entities e ON ic.entity_id = e.id
+WHERE 
+    ic.Number_rabies != '' AND ic.Number_rabies IS NOT NULL
+GROUP BY 
+    e.name, e.code
+ORDER BY 
+    avg_number_rabies DESC
+LIMIT 10;
+
+4. 
+USE pandemic;
+SELECT 
+	MAKEDATE(Year, 1) AS infectious_year,
+	CURDATE() AS cur_date,
+	TIMESTAMPDIFF(YEAR, MAKEDATE(Year, 1), CURDATE()) AS year_diff
+FROM 
+    infectious_cases;
+
+5. 
+USE pandemic;
+DELIMITER //
+CREATE FUNCTION get_year_difference(input_year INT)
+RETURNS INT
+DETERMINISTIC
+BEGIN
+    DECLARE infectious_year DATE;
+    DECLARE years_diff INT;
+
+    SET infectious_year = MAKEDATE(input_year, 1);
+    
+    SET years_diff = TIMESTAMPDIFF(YEAR, infectious_year, CURDATE());
+    
+    RETURN years_diff;
+END //
+DELIMITER ;
+
+SELECT get_year_difference(Year) AS years_diff
+FROM infectious_cases;
